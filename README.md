@@ -38,6 +38,14 @@ SIT 由两类角色组成:
 
 ## 快速开始
 
+### 安装预编译版本
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lhanlhanlhan/sit/main/scripts/install.sh | bash
+```
+
+默认安装到 `~/bin/sit`;可通过 `SIT_INSTALL_DIR=/path/to/bin` 覆盖安装目录。安装脚本会按本机平台下载最新 GitHub Release 中的预编译二进制,并打印安装后的版本。
+
 ### 构建
 
 ```bash
