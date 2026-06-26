@@ -2,7 +2,7 @@
 set -euo pipefail
 
 REPO="${SIT_REPO:-lhanlhanlhan/sit}"
-INSTALL_DIR="${SIT_INSTALL_DIR:-$HOME/bin}"
+INSTALL_DIR="${SIT_INSTALL_DIR:-$HOME/.local/bin}"
 BIN_NAME="sit"
 
 need() {
@@ -59,8 +59,19 @@ echo "sit installer: downloading ${ASSET} from ${TAG}"
 curl -fL "${URL}" -o "${TMP}"
 chmod +x "${TMP}"
 
-mkdir -p "${INSTALL_DIR}"
-mv -f "${TMP}" "${INSTALL_DIR}/${BIN_NAME}"
+DEST="${INSTALL_DIR}/${BIN_NAME}"
 
-VERSION="$("${INSTALL_DIR}/${BIN_NAME}" version | tr -d '\r')"
-echo "sit installer: installed ${VERSION} to ${INSTALL_DIR}/${BIN_NAME}"
+mkdir -p "${INSTALL_DIR}"
+mv -f "${TMP}" "${DEST}"
+
+VERSION="$("${DEST}" version | tr -d '\r')"
+echo "sit installer: installed ${VERSION} to ${DEST}"
+
+case ":${PATH}:" in
+  *":${INSTALL_DIR}:"*) ;;
+  *)
+    echo "sit installer: ${INSTALL_DIR} is not in PATH"
+    echo "sit installer: add this to your shell profile:"
+    echo "  export PATH=\"${INSTALL_DIR}:\$PATH\""
+    ;;
+esac

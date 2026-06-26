@@ -44,7 +44,7 @@ SIT 由两类角色组成:
 curl -fsSL https://raw.githubusercontent.com/lhanlhanlhan/sit/main/scripts/install.sh | bash
 ```
 
-默认安装到 `~/bin/sit`;可通过 `SIT_INSTALL_DIR=/path/to/bin` 覆盖安装目录。安装脚本会按本机平台下载最新 GitHub Release 中的预编译二进制,并打印安装后的版本。
+默认安装到用户目录下的 `~/.local/bin/sit`;可通过 `SIT_INSTALL_DIR=/path/to/bin` 覆盖安装目录。安装脚本会按本机平台下载最新 GitHub Release 中的预编译二进制,覆盖已有 `sit`,并打印安装后的版本。若安装目录不在 `PATH` 中,脚本会打印 shell 配置提示。
 
 ### 构建
 
