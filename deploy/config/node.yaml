@@ -1,0 +1,18 @@
+# SIT Node configuration (node.yaml).
+# Identity (node_id) and long-term credential are NOT stored here — they live in
+# the state dir (0600), created on `sit node enroll`.
+
+# Manager endpoints, tried in order with failover. Out-of-band updatable (ADR-004).
+endpoints:
+  - wss://sit.example.com/sit/connect
+  - wss://sit-backup.example.com/sit/connect
+
+# State directory for identity + credential. Platform default if omitted
+# (Linux /var/lib/sit, macOS /usr/local/var/lib/sit).
+state_dir: /var/lib/sit
+
+# Heartbeat period in seconds (default 30).
+heartbeat_sec: 30
+
+# TEST ONLY — never enable in production. Disables Manager TLS validation.
+insecure_skip_verify: false

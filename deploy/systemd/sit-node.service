@@ -1,0 +1,30 @@
+# SIT Node — resident agent (Linux/systemd).
+# Install: copy to /etc/systemd/system/sit-node.service then
+#   systemctl daemon-reload && systemctl enable --now sit-node
+#
+# Two-layer resilience: systemd Restart handles "process died"; the agent's own
+# backoff reconnect loop handles "connection dropped".
+[Unit]
+Description=SIT Node
+Documentation=https://github.com/sit/sit
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/sit node --config /etc/sit/node.yaml
+Restart=always
+RestartSec=5
+User=sit
+Group=sit
+# Hardening: node only dials outbound, never listens.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+# State dir for identity + long-term credential (0600).
+StateDirectory=sit
+ReadWritePaths=/var/lib/sit
+
+[Install]
+WantedBy=multi-user.target

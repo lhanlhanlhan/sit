@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SIT Node — resident agent (macOS / launchd).
+  System-level daemon: copy to /Library/LaunchDaemons/com.sit.node.plist then
+    sudo launchctl load /Library/LaunchDaemons/com.sit.node.plist
+  (For a per-user agent instead, place in ~/Library/LaunchAgents/.)
+
+  RunAtLoad + KeepAlive give boot-start + crash-restart; the agent's own
+  backoff loop handles connection drops.
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.sit.node</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/sit</string>
+        <string>node</string>
+        <string>--config</string>
+        <string>/usr/local/etc/sit/node.yaml</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>ThrottleInterval</key>
+    <integer>5</integer>
+    <key>StandardOutPath</key>
+    <string>/usr/local/var/log/sit-node.log</string>
+    <key>StandardErrorPath</key>
+    <string>/usr/local/var/log/sit-node.err.log</string>
+</dict>
+</plist>

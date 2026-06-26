@@ -1,0 +1,24 @@
+# SIT Manager configuration (manager.yaml).
+# Flat key: value form (minimal YAML subset).
+
+# WSS listener for node connections.
+listen_wss: ":443"
+
+# REST API + MCP gateway listener.
+listen_api: ":8443"
+
+# SQLite store path.
+store_path: /var/lib/sit/manager.db
+
+# TLS server certificate + key (PEM). Both required to enable TLS; if either is
+# empty the listeners serve plaintext (test only — front behind a TLS reverse
+# proxy/CDN in production, ADR-004).
+tls_cert_file: /etc/sit/tls/fullchain.pem
+tls_key_file: /etc/sit/tls/privkey.pem
+
+# Seed admin (first boot only; password is bcrypt-hashed and never re-applied).
+admin_user: admin
+admin_password: change-me-on-first-boot
+
+# MCP endpoint bearer token. Empty disables MCP auth (NOT recommended).
+mcp_token: ""
