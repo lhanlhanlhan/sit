@@ -2,7 +2,13 @@
 set -euo pipefail
 
 REPO="${SIT_REPO:-lhanlhanlhan/sit}"
-INSTALL_DIR="${SIT_INSTALL_DIR:-$HOME/.local/bin}"
+if [ -n "${SIT_INSTALL_DIR:-}" ]; then
+  INSTALL_DIR="${SIT_INSTALL_DIR}"
+elif [ "${EUID}" -eq 0 ]; then
+  INSTALL_DIR="/usr/local/bin"
+else
+  INSTALL_DIR="$HOME/.local/bin"
+fi
 BIN_NAME="sit"
 
 need() {

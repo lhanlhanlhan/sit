@@ -54,6 +54,7 @@ func newNodeCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&configPath, "config", "/etc/sit/node.yaml", "path to node config file")
 	cmd.AddCommand(newNodeEnrollCmd())
+	cmd.AddCommand(newNodeSetupCmd())
 	return cmd
 }
 

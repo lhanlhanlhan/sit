@@ -19,12 +19,56 @@
 
 ## 运行
 
-把 `web/` 目录交给任意静态托管即可,例如本地直接用浏览器打开 `login.html`,或放到 Nginx 静态根目录。
-登录页填写的 **API 地址是 Manager 的 REST 监听根地址**(如 `https://mgr.example:8443`),**不含** `/api/v1`(代码会自动拼接)。
+推荐用本地静态服务器运行,不要直接用 `file://` 打开:
+
+```bash
+scripts/serve-web.sh
+```
+
+默认访问:
+
+```text
+http://localhost:45101/login.html
+```
+
+如需使用 Manager 服务端已放行的指定端口:
+
+```bash
+SIT_WEB_PORT=xxxx scripts/serve-web.sh
+```
+
+登录页填写的 **API 地址是 Manager 的 REST 监听根地址**(如 `https://mgr.example:8443` 或 `https://go.meating.cc/sit`),**不含** `/api/v1`(代码会自动拼接)。
 
 ## 跨域(CORS)—— 必读
 
-前端与 Manager API **不同源**时,浏览器会拦截跨域请求。本前端定位为「独立交付,跨域由部署方用反代解决」,Manager **未内置 CORS 头**。推荐用反向代理把前端与 API 收敛到**同一来源**,从根本上规避 CORS。
+前端与 Manager API **不同源**时,浏览器会执行 CORS 校验。可选两种部署方式:
+
+1. 本地 GUI:用 `scripts/serve-web.sh` 固定在 `http://localhost:<port>` 运行,并在 Manager API 前面的 Nginx 放行这个 origin。
+2. 线上 GUI:用反向代理把前端与 API 收敛到同一来源,从根本上规避 CORS。
+
+本地 GUI 访问公网 Manager API 时,推荐在 Nginx 层处理 CORS,不用改 Manager 二进制。示例:
+
+```nginx
+set $cors_origin "";
+if ($http_origin = "http://localhost:45101") {
+    set $cors_origin $http_origin;
+}
+
+location /sit/api/ {
+    if ($request_method = OPTIONS) {
+        add_header Access-Control-Allow-Origin $cors_origin always;
+        add_header Access-Control-Allow-Methods "GET, POST, PATCH, DELETE, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;
+        add_header Access-Control-Max-Age 600 always;
+        add_header Vary Origin always;
+        return 204;
+    }
+
+    add_header Access-Control-Allow-Origin $cors_origin always;
+    add_header Vary Origin always;
+    proxy_pass http://127.0.0.1:8443/api/;
+}
+```
 
 Nginx 示例(前端与 API 同源,API 走 `/api/` 与 `/mcp` 转发到 Manager):
 
