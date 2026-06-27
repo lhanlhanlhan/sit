@@ -1,0 +1,101 @@
+/* SIT Manager GUI — minimal styling, no framework. */
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  margin: 0;
+  color: #1a1a1a;
+  background: #f5f5f5;
+  line-height: 1.5;
+}
+header {
+  background: #222;
+  color: #fff;
+  padding: 0.6rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+header .brand { font-weight: 700; }
+header nav a {
+  color: #cfcfcf;
+  text-decoration: none;
+  margin-right: 0.8rem;
+  font-size: 0.9rem;
+}
+header nav a:hover, header nav a.active { color: #fff; text-decoration: underline; }
+header .spacer { flex: 1; }
+header .who { font-size: 0.85rem; color: #bbb; }
+header button { font-size: 0.85rem; }
+
+main { max-width: 1100px; margin: 1.2rem auto; padding: 0 1rem; }
+h1 { font-size: 1.4rem; margin: 0.2rem 0 1rem; }
+h2 { font-size: 1.1rem; margin: 1.4rem 0 0.6rem; }
+
+.card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 1rem 1.2rem;
+  margin-bottom: 1rem;
+}
+
+table { width: 100%; border-collapse: collapse; background: #fff; }
+th, td { text-align: left; padding: 0.5rem 0.6rem; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+th { background: #fafafa; font-weight: 600; }
+tr:hover td { background: #fafbff; }
+
+label { display: block; font-size: 0.85rem; margin: 0.6rem 0 0.2rem; color: #444; }
+input, select, textarea {
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+textarea { min-height: 4rem; resize: vertical; }
+
+button {
+  cursor: pointer;
+  border: 1px solid #2a6;
+  background: #2a6;
+  color: #fff;
+  padding: 0.45rem 0.9rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+button:hover { background: #248a55; }
+button.secondary { background: #fff; color: #333; border-color: #bbb; }
+button.secondary:hover { background: #f0f0f0; }
+button.danger { background: #c0392b; border-color: #c0392b; }
+button.danger:hover { background: #a93226; }
+button.link { background: none; border: none; color: #1565c0; padding: 0; font-size: 0.85rem; }
+button.link:hover { text-decoration: underline; background: none; }
+button[disabled] { opacity: 0.5; cursor: not-allowed; }
+
+.badge { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.78rem; }
+.badge.online { background: #e3f6e8; color: #1b7a3d; }
+.badge.offline { background: #eee; color: #777; }
+
+.row { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: flex-end; }
+.row > * { flex: 1; }
+.row .narrow { flex: 0 0 auto; }
+
+.muted { color: #888; font-size: 0.85rem; }
+.error { color: #c0392b; font-size: 0.9rem; margin: 0.5rem 0; }
+.ok { color: #1b7a3d; font-size: 0.9rem; margin: 0.5rem 0; }
+
+pre {
+  background: #1e1e1e;
+  color: #e0e0e0;
+  padding: 0.8rem;
+  border-radius: 4px;
+  overflow: auto;
+  font-size: 0.82rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+code { background: #eee; padding: 0.1rem 0.3rem; border-radius: 3px; font-size: 0.85rem; }
+
+.login-wrap { max-width: 360px; margin: 4rem auto; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }

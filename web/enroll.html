@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>接入 — SIT Manager</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="app-header"></header>
+<main>
+  <h1>节点接入</h1>
+  <div class="card">
+    <p class="muted">生成一次性 enrollment token,在新设备上用它换取长期凭证完成接入。Token 单次有效、30 分钟内过期。</p>
+    <button id="btn" onclick="mint()">生成 enrollment token</button>
+    <div id="msg"></div>
+    <div id="out"></div>
+  </div>
+</main>
+
+<script src="app.js"></script>
+<script>
+  if (requireLogin()) renderHeader('enroll.html');
+
+  async function mint() {
+    clearMsg('msg');
+    document.getElementById('out').innerHTML = '';
+    const btn = document.getElementById('btn');
+    btn.disabled = true;
+    try {
+      const out = await api('POST', '/nodes/enroll');
+      const tok = out.enroll_token;
+      const endpoint = SIT.apiBase;
+      const cmd = `sit node enroll --token ${tok} --endpoint ${endpoint}`;
+      document.getElementById('out').innerHTML = `
+        <h2>Enrollment Token</h2>
+        <pre id="tok">${escapeHtml(tok)}</pre>
+        <p class="muted">过期时间:${fmtTime(out.expires_at)}</p>
+        <button class="secondary" onclick="copy('${tok}')">复制 token</button>
+        <h2>在新设备上执行</h2>
+        <pre id="cmd">${escapeHtml(cmd)}</pre>
+        <button class="secondary" onclick="copy(document.getElementById('cmd').textContent)">复制命令</button>
+        <p class="muted" style="margin-top:1rem">接入成功后,节点会出现在<a href="nodes.html">节点列表</a>。</p>`;
+    } catch (e) {
+      showError('msg', e.message);
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function copy(text) {
+    navigator.clipboard.writeText(text).then(
+      () => showOk('msg', '已复制到剪贴板'),
+      () => showError('msg', '复制失败,请手动选择')
+    );
+  }
+</script>
+</body>
+</html>

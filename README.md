@@ -115,6 +115,10 @@ sit node --config /etc/sit/node.yaml
 
 MCP 端点为 `/mcp`(JSON-RPC 2.0 over Streamable HTTP),通过 `X-SIT-Node` 头或 `?node=` 参数寻址目标 Node。
 
+## 管理前端 GUI
+
+`web/` 提供一套纯静态、零构建的管理 GUI(原生 HTML+JS+极简 CSS),独立交付、不由 Manager 托管:登录、节点列表/详情、任务下发与结果、节点接入。实时刷新用轮询(非 WSS)。跨域需自行用反代把前端与 API 收敛到同源,详见 [`web/README.md`](web/README.md)。
+
 ## 工程结构
 
 | 包路径 | 职责 |

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>节点详情 — SIT Manager</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="app-header"></header>
+<main>
+  <p><a href="nodes.html">← 返回节点列表</a></p>
+  <h1 id="title">节点详情</h1>
+  <div id="msg"></div>
+
+  <div class="card">
+    <div class="row">
+      <div class="narrow"><button onclick="reload()" class="secondary">刷新</button></div>
+      <div class="narrow"><button onclick="goTasks()">下发任务</button></div>
+    </div>
+    <div id="detail" class="muted">加载中…</div>
+  </div>
+
+  <h2>网络地址</h2>
+  <table>
+    <thead><tr><th>IP</th><th>Family</th><th>接口</th><th>Scope</th></tr></thead>
+    <tbody id="addrs"><tr><td colspan="4" class="muted">—</td></tr></tbody>
+  </table>
+
+  <h2>活动时间线</h2>
+  <table>
+    <thead><tr><th>时间</th><th>类型</th><th>详情</th></tr></thead>
+    <tbody id="acts"><tr><td colspan="3" class="muted">加载中…</td></tr></tbody>
+  </table>
+</main>
+
+<script src="app.js"></script>
+<script>
+  const nodeId = qs('id');
+  if (requireLogin()) {
+    renderHeader('nodes.html');
+    if (!nodeId) { showError('msg', '缺少 node id'); }
+    else { reload(); setInterval(reload, 5000); }
+  }
+
+  function goTasks() { location.href = 'tasks.html?node=' + encodeURIComponent(nodeId); }
+
+  async function reload() {
+    clearMsg('msg');
+    try {
+      const [n, a] = await Promise.all([
+        api('GET', '/nodes/' + encodeURIComponent(nodeId)),
+        api('GET', '/nodes/' + encodeURIComponent(nodeId) + '/activities?limit=50'),
+      ]);
+      renderDetail(n);
+      renderAddrs(n.addrs || []);
+      renderActs(a.activities || []);
+    } catch (e) {
+      showError('msg', e.message);
+    }
+  }
+
+  function renderDetail(n) {
+    document.getElementById('title').textContent = n.display_name || n.node_id;
+    const hb = n.heartbeat;
+    const rows = [
+      ['node_id', `<span class="mono">${escapeHtml(n.node_id)}</span>`],
+      ['显示名', escapeHtml(n.display_name || '—')],
+      ['状态', statusBadge(n.status)],
+      ['Last Seen', `${fmtTime(n.last_seen)}(${fmtAgo(n.last_seen)})`],
+      ['主机名', escapeHtml(n.hostname || '—')],
+      ['OS / Arch', escapeHtml((n.os || '?') + ' / ' + (n.arch || '?'))],
+      ['版本', escapeHtml(n.version || '—')],
+      ['MCP', n.mcp_enabled ? '已开启' : '关闭'],
+      ['注册时间', fmtTime(n.created_at)],
+    ];
+    if (hb) {
+      rows.push(['运行时长', (hb.uptime_sec || 0) + ' 秒']);
+      rows.push(['负载', (hb.load || []).join(', ') || '—']);
+      rows.push(['内存占用', (hb.mem_used_mb || 0) + ' MB']);
+    }
+    document.getElementById('detail').innerHTML =
+      '<table>' + rows.map(([k, v]) =>
+        `<tr><th style="width:140px">${k}</th><td>${v}</td></tr>`).join('') + '</table>';
+  }
+
+  function renderAddrs(addrs) {
+    const t = document.getElementById('addrs');
+    t.innerHTML = addrs.length
+      ? addrs.map(a => `<tr><td class="mono">${escapeHtml(a.ip)}</td><td>${escapeHtml(a.family)}</td><td>${escapeHtml(a.iface)}</td><td>${escapeHtml(a.scope)}</td></tr>`).join('')
+      : '<tr><td colspan="4" class="muted">—</td></tr>';
+  }
+
+  function renderActs(acts) {
+    const t = document.getElementById('acts');
+    t.innerHTML = acts.length
+      ? acts.map(a => {
+          let detail = a.detail_json || '';
+          if (detail === '{}') detail = '';
+          return `<tr><td>${fmtTime(a.at)}</td><td>${escapeHtml(a.type)}</td><td class="mono">${escapeHtml(detail)}</td></tr>`;
+        }).join('')
+      : '<tr><td colspan="3" class="muted">暂无活动</td></tr>';
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>节点 — SIT Manager</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="app-header"></header>
+<main>
+  <h1>节点列表</h1>
+  <div class="card">
+    <div class="row">
+      <div class="narrow">
+        <label for="f-status">状态</label>
+        <select id="f-status" onchange="reload()">
+          <option value="">全部</option>
+          <option value="online">在线</option>
+          <option value="offline">离线</option>
+        </select>
+      </div>
+      <div>
+        <label for="f-q">关键字</label>
+        <input id="f-q" placeholder="名称 / node_id" oninput="debouncedReload()">
+      </div>
+      <div class="narrow">
+        <label>&nbsp;</label>
+        <button class="secondary" onclick="reload()">刷新</button>
+      </div>
+      <div class="narrow">
+        <label for="f-auto">自动刷新</label>
+        <select id="f-auto" onchange="setupAuto()">
+          <option value="5">5 秒</option>
+          <option value="10">10 秒</option>
+          <option value="0">关闭</option>
+        </select>
+      </div>
+    </div>
+    <div id="msg"></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>名称</th><th>状态</th><th>Last Seen</th><th>OS</th><th>Arch</th>
+        <th>版本</th><th>MCP</th><th>操作</th>
+      </tr>
+    </thead>
+    <tbody id="rows"><tr><td colspan="8" class="muted">加载中…</td></tr></tbody>
+  </table>
+  <p class="muted" id="count"></p>
+</main>
+
+<script src="app.js"></script>
+<script>
+  if (requireLogin()) { renderHeader('nodes.html'); reload(); setupAuto(); }
+
+  let timer = null;
+  let debTimer = null;
+
+  function debouncedReload() {
+    clearTimeout(debTimer);
+    debTimer = setTimeout(reload, 350);
+  }
+
+  function setupAuto() {
+    if (timer) { clearInterval(timer); timer = null; }
+    const sec = parseInt(document.getElementById('f-auto').value, 10);
+    if (sec > 0) timer = setInterval(reload, sec * 1000);
+  }
+
+  async function reload() {
+    clearMsg('msg');
+    const status = document.getElementById('f-status').value;
+    const q = document.getElementById('f-q').value.trim();
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    if (q) params.set('q', q);
+    try {
+      const out = await api('GET', '/nodes' + (params.toString() ? '?' + params : ''));
+      render(out.nodes || []);
+    } catch (e) {
+      showError('msg', e.message);
+    }
+  }
+
+  function render(nodes) {
+    const tbody = document.getElementById('rows');
+    if (!nodes.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="muted">暂无节点</td></tr>';
+      document.getElementById('count').textContent = '';
+      return;
+    }
+    tbody.innerHTML = nodes.map(n => {
+      const name = escapeHtml(n.display_name || n.node_id);
+      const id = encodeURIComponent(n.node_id);
+      return `<tr>
+        <td><a href="node.html?id=${id}">${name}</a><br><span class="muted mono">${escapeHtml(n.node_id)}</span></td>
+        <td>${statusBadge(n.status)}</td>
+        <td>${fmtAgo(n.last_seen)}</td>
+        <td>${escapeHtml(n.os)}</td>
+        <td>${escapeHtml(n.arch)}</td>
+        <td>${escapeHtml(n.version)}</td>
+        <td>${n.mcp_enabled ? '✅' : '—'}</td>
+        <td>
+          <button class="link" onclick="goTasks('${id}')">任务</button>
+          <button class="link" onclick="rename('${id}','${escapeHtml(n.display_name || '')}')">重命名</button>
+          <button class="link" onclick="toggleMCP('${id}',${n.mcp_enabled})">${n.mcp_enabled ? '关 MCP' : '开 MCP'}</button>
+          <button class="link" style="color:#c0392b" onclick="revoke('${id}','${name}')">吊销</button>
+        </td>
+      </tr>`;
+    }).join('');
+    document.getElementById('count').textContent = `共 ${nodes.length} 个节点`;
+  }
+
+  function goTasks(id) { location.href = 'tasks.html?node=' + id; }
+
+  async function rename(id, cur) {
+    const name = prompt('新的显示名:', cur);
+    if (name === null) return;
+    try { await api('PATCH', '/nodes/' + id, { display_name: name }); reload(); }
+    catch (e) { showError('msg', e.message); }
+  }
+
+  async function toggleMCP(id, enabled) {
+    try { await api('POST', '/nodes/' + id + (enabled ? '/mcp:disable' : '/mcp:enable')); reload(); }
+    catch (e) { showError('msg', e.message); }
+  }
+
+  async function revoke(id, name) {
+    if (!confirm(`确认吊销并移除节点「${name}」?\n该节点凭证将失效并被踢下线。`)) return;
+    try { await api('DELETE', '/nodes/' + id); reload(); }
+    catch (e) { showError('msg', e.message); }
+  }
+</script>
+</body>
+</html>

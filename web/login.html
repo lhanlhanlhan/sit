@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>登录 — SIT Manager</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <div class="login-wrap card">
+    <h1>SIT Manager 登录</h1>
+    <label for="api">Manager API 地址</label>
+    <input id="api" placeholder="https://mgr.example:8443" autocomplete="off">
+    <label for="user">用户名</label>
+    <input id="user" autocomplete="username">
+    <label for="pass">密码</label>
+    <input id="pass" type="password" autocomplete="current-password">
+    <div id="msg"></div>
+    <div style="margin-top:1rem">
+      <button id="btn" onclick="doLogin()">登录</button>
+    </div>
+    <p class="muted" style="margin-top:1rem">
+      地址填 Manager REST 监听根地址(不含 <code>/api/v1</code>)。跨域访问需自行用反代解决,详见 <code>web/README.md</code>。
+    </p>
+  </div>
+</main>
+<script src="app.js"></script>
+<script>
+  // Prefill from previous session.
+  document.getElementById('api').value = SIT.apiBase || '';
+  document.getElementById('user').value = SIT.user || '';
+
+  async function doLogin() {
+    clearMsg('msg');
+    const api_ = document.getElementById('api').value.trim();
+    const user = document.getElementById('user').value.trim();
+    const pass = document.getElementById('pass').value;
+    if (!api_ || !user || !pass) { showError('msg', '请填写完整'); return; }
+    SIT.apiBase = api_;
+    const btn = document.getElementById('btn');
+    btn.disabled = true;
+    try {
+      const out = await api('POST', '/auth/login', { username: user, password: pass });
+      SIT.token = out.token;
+      SIT.user = user;
+      location.href = 'nodes.html';
+    } catch (e) {
+      showError('msg', e.message);
+      btn.disabled = false;
+    }
+  }
+
+  // Enter key submits.
+  document.getElementById('pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+</script>
+</body>
+</html>

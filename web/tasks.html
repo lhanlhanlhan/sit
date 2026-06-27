@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>任务 — SIT Manager</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header id="app-header"></header>
+<main>
+  <p><a id="back" href="nodes.html">← 返回</a></p>
+  <h1 id="title">下发任务</h1>
+  <div id="msg"></div>
+
+  <div class="card">
+    <h2 style="margin-top:0">新建任务</h2>
+    <div class="row">
+      <div class="narrow">
+        <label for="kind">类型</label>
+        <select id="kind" onchange="onKind()">
+          <option value="shell">shell(任意命令)</option>
+          <option value="predefined">predefined(预定义)</option>
+        </select>
+      </div>
+      <div class="narrow">
+        <label for="timeout">超时(秒)</label>
+        <input id="timeout" type="number" value="60" min="1" style="width:100px">
+      </div>
+    </div>
+
+    <div id="shell-fields">
+      <label for="command">命令</label>
+      <textarea id="command" placeholder="例如:uptime &amp;&amp; df -h"></textarea>
+    </div>
+
+    <div id="pre-fields" style="display:none">
+      <label for="pname">预定义名称</label>
+      <input id="pname" placeholder="例如:sysinfo">
+      <label for="pargs">参数(JSON,可选)</label>
+      <input id="pargs" placeholder='例如:{"path":"/var/log"}'>
+    </div>
+
+    <div style="margin-top:0.8rem">
+      <button id="submit" onclick="submitTask()">下发并等待结果</button>
+      <span class="muted">下发后自动轮询任务结果。</span>
+    </div>
+    <div id="result"></div>
+  </div>
+
+  <h2>任务历史</h2>
+  <div class="row" style="margin-bottom:0.6rem">
+    <div class="narrow"><button class="secondary" onclick="loadHistory()">刷新历史</button></div>
+  </div>
+  <table>
+    <thead><tr><th>创建时间</th><th>类型</th><th>命令/名称</th><th>状态</th><th>退出码</th><th>耗时</th><th></th></tr></thead>
+    <tbody id="hist"><tr><td colspan="7" class="muted">加载中…</td></tr></tbody>
+  </table>
+</main>
+
+<script src="app.js"></script>
+<script>
+  const nodeId = qs('node');
+  if (requireLogin()) {
+    renderHeader('nodes.html');
+    if (!nodeId) { showError('msg', '缺少 node 参数'); }
+    else {
+      document.getElementById('title').textContent = '任务 · ' + nodeId;
+      document.getElementById('back').href = 'node.html?id=' + encodeURIComponent(nodeId);
+      loadHistory();
+    }
+  }
+
+  function onKind() {
+    const k = document.getElementById('kind').value;
+    document.getElementById('shell-fields').style.display = k === 'shell' ? '' : 'none';
+    document.getElementById('pre-fields').style.display = k === 'predefined' ? '' : 'none';
+  }
+
+  async function submitTask() {
+    clearMsg('msg');
+    document.getElementById('result').innerHTML = '';
+    const kind = document.getElementById('kind').value;
+    const timeout = parseInt(document.getElementById('timeout').value, 10) || 60;
+    const body = { kind, timeout_sec: timeout };
+    if (kind === 'shell') {
+      body.command = document.getElementById('command').value;
+      if (!body.command.trim()) { showError('msg', '请输入命令'); return; }
+    } else {
+      body.name = document.getElementById('pname').value.trim();
+      if (!body.name) { showError('msg', '请输入预定义名称'); return; }
+      const raw = document.getElementById('pargs').value.trim();
+      if (raw) {
+        try { body.args = JSON.parse(raw); }
+        catch (_) { showError('msg', '参数不是合法 JSON'); return; }
+      }
+    }
+    const btn = document.getElementById('submit');
+    btn.disabled = true;
+    try {
+      const out = await api('POST', '/nodes/' + encodeURIComponent(nodeId) + '/tasks', body);
+      document.getElementById('result').innerHTML =
+        `<p class="ok">已下发,task_id=<span class="mono">${escapeHtml(out.task_id)}</span>,状态:${escapeHtml(out.state)}。等待结果…</p>`;
+      pollTask(out.task_id);
+    } catch (e) {
+      showError('msg', e.message);
+      btn.disabled = false;
+    }
+  }
+
+  const TERMINAL = ['succeeded', 'failed', 'expired', 'timeout'];
+
+  async function pollTask(taskId) {
+    const btn = document.getElementById('submit');
+    let tries = 0;
+    const tick = async () => {
+      tries++;
+      try {
+        const t = await api('GET', '/tasks/' + encodeURIComponent(taskId));
+        if (TERMINAL.includes(t.state)) {
+          renderResult(t);
+          btn.disabled = false;
+          loadHistory();
+          return;
+        }
+        document.getElementById('result').innerHTML =
+          `<p class="muted">task <span class="mono">${escapeHtml(taskId)}</span> 状态:${escapeHtml(t.state)}…(轮询 ${tries})</p>`;
+        if (tries < 120) setTimeout(tick, 1000);
+        else { showError('msg', '轮询超时,请稍后到历史查看'); btn.disabled = false; }
+      } catch (e) {
+        showError('msg', e.message);
+        btn.disabled = false;
+      }
+    };
+    tick();
+  }
+
+  function renderResult(t) {
+    const cls = t.state === 'succeeded' ? 'ok' : 'error';
+    document.getElementById('result').innerHTML = `
+      <p class="${cls}">状态:${escapeHtml(t.state)} · 退出码:${t.exit_code} · 耗时:${t.duration_ms || 0} ms ${t.truncated ? '·(输出已截断)' : ''}</p>
+      <h2>stdout</h2><pre>${escapeHtml(t.stdout || '(空)')}</pre>
+      <h2>stderr</h2><pre>${escapeHtml(t.stderr || '(空)')}</pre>`;
+  }
+
+  async function loadHistory() {
+    try {
+      const out = await api('GET', '/nodes/' + encodeURIComponent(nodeId) + '/tasks?limit=50');
+      const tasks = out.tasks || [];
+      const t = document.getElementById('hist');
+      t.innerHTML = tasks.length
+        ? tasks.map(x => {
+            const label = x.kind === 'shell' ? (x.command || '') : (x.name || '');
+            return `<tr>
+              <td>${fmtTime(x.created_at)}</td>
+              <td>${escapeHtml(x.kind)}</td>
+              <td class="mono">${escapeHtml(label.length > 60 ? label.slice(0, 60) + '…' : label)}</td>
+              <td>${escapeHtml(x.state)}</td>
+              <td>${x.exit_code}</td>
+              <td>${x.duration_ms || 0} ms</td>
+              <td><button class="link" onclick="view('${encodeURIComponent(x.task_id)}')">查看</button></td>
+            </tr>`;
+          }).join('')
+        : '<tr><td colspan="7" class="muted">暂无任务</td></tr>';
+    } catch (e) {
+      showError('msg', e.message);
+    }
+  }
+
+  async function view(taskId) {
+    try {
+      const t = await api('GET', '/tasks/' + taskId);
+      renderResult(t);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (e) { showError('msg', e.message); }
+  }
+</script>
+</body>
+</html>
