@@ -9,13 +9,57 @@
 |---|---|
 | `login.html` | 登录:填 API 地址 + 用户名 + 密码,换取 admin token |
 | `nodes.html` | 节点列表:状态/Last Seen/OS/Arch/版本,过滤 + 自动刷新(轮询),行操作:任务/重命名/MCP 开关/吊销 |
-| `node.html?id=<node_id>` | 节点详情:基础信息 + 心跳指标 + 网络地址 + 活动时间线 |
+| `node.html?id=<node_id>` | 节点详情:基础信息 + 心跳指标 + 网络地址 + 活动时间线 + MCP 配置复制 |
 | `tasks.html?node=<node_id>` | 任务下发(shell / predefined)+ 结果轮询 + 任务历史 |
 | `enroll.html` | 生成一次性 enrollment token,给新节点接入用 |
 | `app.js` | 共享:配置/会话(localStorage)、fetch 封装(自动 bearer、401 跳登录)、格式化辅助 |
 | `style.css` | 极简样式,无框架 |
 
 > 实时刷新采用**定时轮询**(节点列表/详情每 5 秒,任务结果每 1 秒);不使用 WSS(`/sit/connect` 是 Node 专用通道,不面向管理端)。
+
+## MCP 配置
+
+当节点的 `mcp_enabled` 已开启时,节点列表会出现「MCP配置」入口;节点详情页会显示可复制的 Codex TOML 与通用 MCP JSON 配置。
+
+Codex 推荐配置:
+
+```toml
+[mcp_servers.sit-node-name]
+url = "https://go.meating.cc/sit/mcp"
+http_headers = { X-SIT-Node = "<node_id>" }
+env_http_headers = { Authorization = "SIT_MCP_AUTHORIZATION" }
+```
+
+启动 Codex 前设置:
+
+```bash
+export SIT_MCP_AUTHORIZATION='Bearer <MCP_TOKEN>'
+```
+
+macOS 桌面版 Codex 可用:
+
+```bash
+launchctl setenv SIT_MCP_AUTHORIZATION 'Bearer <MCP_TOKEN>'
+```
+
+通用 JSON 配置:
+
+```json
+{
+  "mcpServers": {
+    "sit-node-name": {
+      "type": "http",
+      "url": "https://go.meating.cc/sit/mcp",
+      "headers": {
+        "Authorization": "Bearer <MCP_TOKEN>",
+        "X-SIT-Node": "<node_id>"
+      }
+    }
+  }
+}
+```
+
+`<MCP_TOKEN>` 为 Manager 配置中的 `mcp_token`。SIT 使用 `X-SIT-Node` header 指定目标 Node;如果某个 MCP 客户端不支持自定义 header,可改用 `?node=<node_id>` 查询参数寻址。token 不应放入 query。
 
 ## 运行
 

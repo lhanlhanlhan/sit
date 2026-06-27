@@ -75,6 +75,25 @@ func (e *env) rpc(t *testing.T, node, token string, body map[string]any) (*http.
 	return resp, out
 }
 
+func (e *env) rpcRaw(t *testing.T, node, token string, body map[string]any) *http.Response {
+	t.Helper()
+	b, _ := json.Marshal(body)
+	req, _ := http.NewRequest("POST", e.srv.URL+"/mcp", bytes.NewReader(b))
+	req.Header.Set("Content-Type", "application/json")
+	if node != "" {
+		req.Header.Set("X-SIT-Node", node)
+	}
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("rpc: %v", err)
+	}
+	t.Cleanup(func() { resp.Body.Close() })
+	return resp
+}
+
 func TestMCP_BadTokenRejected(t *testing.T) {
 	e := newEnv(t, "secret-mcp")
 	resp, _ := e.rpc(t, "", "wrong", map[string]any{"jsonrpc": "2.0", "id": 1, "method": "tools/list"})
@@ -90,6 +109,26 @@ func TestMCP_ToolsList(t *testing.T) {
 	tools, _ := res["tools"].([]any)
 	if len(tools) != 2 {
 		t.Fatalf("expected 2 tools, got %d (%v)", len(tools), out)
+	}
+}
+
+func TestMCP_InitializeUsesStreamableHTTPProtocolVersion(t *testing.T) {
+	e := newEnv(t, "")
+	_, out := e.rpc(t, "", "", map[string]any{"jsonrpc": "2.0", "id": 1, "method": "initialize"})
+	res, _ := out["result"].(map[string]any)
+	if res["protocolVersion"] != "2025-03-26" {
+		t.Fatalf("protocolVersion: got %v want 2025-03-26", res["protocolVersion"])
+	}
+}
+
+func TestMCP_InitializedNotificationAccepted(t *testing.T) {
+	e := newEnv(t, "")
+	resp := e.rpcRaw(t, "", "", map[string]any{"jsonrpc": "2.0", "method": "notifications/initialized"})
+	if resp.StatusCode != http.StatusAccepted {
+		t.Fatalf("initialized notification: got status %d want 202", resp.StatusCode)
+	}
+	if ct := resp.Header.Get("Content-Type"); ct != "" {
+		t.Fatalf("initialized notification content-type: got %q want empty", ct)
 	}
 }
 

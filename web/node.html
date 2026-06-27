@@ -21,6 +21,8 @@
     <div id="detail" class="muted">加载中…</div>
   </div>
 
+  <div id="mcp" class="card" style="display:none"></div>
+
   <h2>网络地址</h2>
   <table>
     <thead><tr><th>IP</th><th>Family</th><th>接口</th><th>Scope</th></tr></thead>
@@ -53,6 +55,7 @@
         api('GET', '/nodes/' + encodeURIComponent(nodeId) + '/activities?limit=50'),
       ]);
       renderDetail(n);
+      renderMCP(n);
       renderAddrs(n.addrs || []);
       renderActs(a.activities || []);
     } catch (e) {
@@ -82,6 +85,44 @@
     document.getElementById('detail').innerHTML =
       '<table>' + rows.map(([k, v]) =>
         `<tr><th style="width:140px">${k}</th><td>${v}</td></tr>`).join('') + '</table>';
+  }
+
+  function renderMCP(n) {
+    const card = document.getElementById('mcp');
+    if (!n.mcp_enabled) {
+      card.style.display = 'none';
+      card.innerHTML = '';
+      return;
+    }
+    const cfgJSON = mcpConfigJSON(n);
+    const cfgCodex = mcpConfigCodexTOML(n);
+    card.style.display = '';
+    card.innerHTML = `
+      <div class="row">
+        <div>
+          <h2 style="margin-top:0">MCP 配置</h2>
+          <p class="muted">复制到支持 MCP remote/http server 的客户端配置中。Codex 配置使用环境变量注入 Authorization header。</p>
+        </div>
+      </div>
+      <div id="mcp-msg"></div>
+      <div class="row">
+        <h3>Codex TOML</h3>
+        <button onclick="copyMCPConfig('mcp-config-codex')">复制</button>
+      </div>
+      <pre id="mcp-config-codex">${escapeHtml(cfgCodex)}</pre>
+      <p class="muted">启动 Codex 前设置 <code>SIT_MCP_AUTHORIZATION=Bearer &lt;MCP_TOKEN&gt;</code>。</p>
+      <div class="row">
+        <h3>通用 JSON</h3>
+        <button onclick="copyMCPConfig('mcp-config-json')">复制</button>
+      </div>
+      <pre id="mcp-config-json">${escapeHtml(cfgJSON)}</pre>
+    `;
+  }
+
+  function copyMCPConfig(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    copyText(el.textContent, 'mcp-msg');
   }
 
   function renderAddrs(addrs) {

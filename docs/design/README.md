@@ -16,6 +16,7 @@
 | [07-deployment.md](./07-deployment.md) | 部署、TLS、开机自启(systemd/launchd)、配置文件 |
 | [08-testing.md](./08-testing.md) | 测试分层与关键用例 |
 | [09-mcp.md](./09-mcp.md) | MCP 网关:Manager 即 Relay,AI Agent 操作 Node;工具集、逐节点开关、Roadmap |
+| [10-security-stability-roadmap.md](./10-security-stability-roadmap.md) | 安全与稳定性规划:弱网自愈、systemd、sudoers、审计、运维检查 |
 | [DECISIONS.md](./DECISIONS.md) | **决策记录(ADR)与特殊规约** —— 改设计先看这里 |
 
 ## 维护约定(CONV-1)

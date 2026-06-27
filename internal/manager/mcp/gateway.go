@@ -73,10 +73,15 @@ func (g *Gateway) serveRPC(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if !hasRequestID(req.ID) {
+		w.WriteHeader(http.StatusAccepted)
+		return
+	}
+
 	switch req.Method {
 	case "initialize":
 		g.writeResult(w, req.ID, map[string]any{
-			"protocolVersion": "2024-11-05",
+			"protocolVersion": "2025-03-26",
 			"serverInfo":      map[string]any{"name": "sit-manager", "version": "0.1.0"},
 			"capabilities":    map[string]any{"tools": map[string]any{}},
 		})
@@ -87,6 +92,10 @@ func (g *Gateway) serveRPC(w http.ResponseWriter, r *http.Request) {
 	default:
 		writeRPCError(w, req.ID, -32601, "method not found: "+req.Method)
 	}
+}
+
+func hasRequestID(id json.RawMessage) bool {
+	return len(id) > 0
 }
 
 // callParams is the tools/call params shape.

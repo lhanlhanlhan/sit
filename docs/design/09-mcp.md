@@ -21,6 +21,7 @@ AI Agent ──(MCP, Streamable HTTP)──> Manager(Relay/网关) ──(WSS In
 - **内嵌进 Manager 进程**(选型 B),走 MCP **Streamable HTTP** transport(远程 transport,非 stdio)。
 - 这是 AI 原生应用的正确形态:Agent 经 Relay 接入,无需本地拉起进程。
 - MCP 端点可整体开关;且每个 Node 有独立 `mcp_enabled` 开关(见 §5),收敛暴露面。
+- HTTP transport 对齐 `2025-03-26` Streamable HTTP 生命周期:`initialize` 后客户端会发送 `notifications/initialized`;此类无 `id` 的 JSON-RPC notification 仅确认接收,返回 `202 Accepted` 且不带 body。
 
 ## 3. Node 寻址:每个 Node = 一个 MCP Server
 

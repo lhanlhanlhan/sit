@@ -105,6 +105,7 @@
         <td>${n.mcp_enabled ? '✅' : '—'}</td>
         <td>
           <button class="link" onclick="goTasks('${id}')">任务</button>
+          ${n.mcp_enabled ? `<button class="link" onclick="goMCP('${id}')">MCP配置</button>` : ''}
           <button class="link" onclick="rename('${id}','${escapeHtml(n.display_name || '')}')">重命名</button>
           <button class="link" onclick="toggleMCP('${id}',${n.mcp_enabled})">${n.mcp_enabled ? '关 MCP' : '开 MCP'}</button>
           <button class="link" style="color:#c0392b" onclick="revoke('${id}','${name}')">吊销</button>
@@ -115,6 +116,7 @@
   }
 
   function goTasks(id) { location.href = 'tasks.html?node=' + id; }
+  function goMCP(id) { location.href = 'node.html?id=' + id + '#mcp'; }
 
   async function rename(id, cur) {
     const name = prompt('新的显示名:', cur);

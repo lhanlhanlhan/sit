@@ -113,6 +113,61 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+function mcpServerName(n) {
+  return ('sit-' + (n.display_name || n.hostname || n.node_id))
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64) || 'sit-node';
+}
+
+function mcpConfigJSON(n) {
+  const cfg = {
+    mcpServers: {},
+  };
+  cfg.mcpServers[mcpServerName(n)] = {
+    type: 'http',
+    url: SIT.apiBase + '/mcp',
+    headers: {
+      Authorization: 'Bearer <MCP_TOKEN>',
+      'X-SIT-Node': n.node_id,
+    },
+  };
+  return JSON.stringify(cfg, null, 2);
+}
+
+function mcpConfigCodexTOML(n) {
+  const name = mcpServerName(n);
+  return [
+    `[mcp_servers.${name}]`,
+    `url = "${SIT.apiBase}/mcp"`,
+    `http_headers = { X-SIT-Node = "${n.node_id}" }`,
+    `env_http_headers = { Authorization = "SIT_MCP_AUTHORIZATION" }`,
+    '',
+  ].join('\n');
+}
+
+async function copyText(text, statusEl) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    if (statusEl) showOk(statusEl, '已复制');
+  } catch (e) {
+    if (statusEl) showError(statusEl, '复制失败:' + e.message);
+  }
+}
+
 // qs reads a query-string param from the current URL.
 function qs(name) { return new URLSearchParams(location.search).get(name) || ''; }
 
