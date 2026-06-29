@@ -464,6 +464,9 @@ func ensureOwnedDir(dir, user string, out io.Writer) error {
 }
 
 func ensureOwnedDirForGroup(dir, user, group string, perm os.FileMode, out io.Writer) error {
+	if err := ensureDarwinDirParents(dir); err != nil {
+		return err
+	}
 	if err := os.MkdirAll(dir, perm); err != nil {
 		return err
 	}
@@ -471,6 +474,29 @@ func ensureOwnedDirForGroup(dir, user, group string, perm os.FileMode, out io.Wr
 		return err
 	}
 	return os.Chmod(dir, perm)
+}
+
+func ensureDarwinDirParents(dir string) error {
+	return ensureDirParents(dir, "/usr/local/var")
+}
+
+func ensureDirParents(dir, repairRoot string) error {
+	parent := filepath.Dir(filepath.Clean(dir))
+	if err := os.MkdirAll(parent, 0755); err != nil {
+		return err
+	}
+	repairRoot = filepath.Clean(repairRoot)
+	for p := parent; p != "." && p != string(filepath.Separator); p = filepath.Dir(p) {
+		if p == repairRoot || strings.HasPrefix(p, repairRoot+string(filepath.Separator)) {
+			if err := os.Chmod(p, 0755); err != nil {
+				return err
+			}
+		}
+		if p == repairRoot {
+			break
+		}
+	}
+	return nil
 }
 
 func writeNodeConfig(path, stateDir, endpoint string, heartbeat int, p *setupPrompter) error {

@@ -177,6 +177,60 @@ func TestRunNodeSetupDarwinInstallsLaunchDaemon(t *testing.T) {
 	assertCommand(t, commands, "launchctl", "kickstart", "-k", "system/"+launchdLabel)
 }
 
+func TestEnsureOwnedDirForGroupKeepsParentsTraversable(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "usr", "local", "var")
+	dir := filepath.Join(root, "lib", "sit")
+	var commands []recordedCommand
+	withSetupFakes(t, "darwin",
+		func(name string, args ...string) bool { return false },
+		func(name string, args ...string) (string, error) { return "", nil },
+		func(out io.Writer, name string, args ...string) error {
+			commands = append(commands, recordedCommand{name: name, args: append([]string(nil), args...)})
+			return nil
+		},
+	)
+
+	if err := ensureOwnedDirForGroup(dir, "_sit", "_sit", 0700, io.Discard); err != nil {
+		t.Fatal(err)
+	}
+	parentInfo, err := os.Stat(filepath.Dir(dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := parentInfo.Mode().Perm(); got != 0755 {
+		t.Fatalf("parent mode = %o, want 0755", got)
+	}
+	leafInfo, err := os.Stat(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := leafInfo.Mode().Perm(); got != 0700 {
+		t.Fatalf("leaf mode = %o, want 0700", got)
+	}
+	assertCommand(t, commands, "chown", "-R", "_sit:_sit", dir)
+}
+
+func TestEnsureDirParentsRepairsExistingNarrowParents(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "usr", "local", "var")
+	parent := filepath.Join(root, "lib")
+	dir := filepath.Join(parent, "sit")
+	if err := os.MkdirAll(parent, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := ensureDirParents(dir, root); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{root, parent} {
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := info.Mode().Perm(); got != 0755 {
+			t.Fatalf("%s mode = %o, want 0755", path, got)
+		}
+	}
+}
+
 func assertCommand(t *testing.T, commands []recordedCommand, name string, args ...string) {
 	t.Helper()
 	for _, cmd := range commands {
