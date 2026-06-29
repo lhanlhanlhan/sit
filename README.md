@@ -79,13 +79,13 @@ mcp_token: ""                  # MCP 端点 bearer;空则关闭 MCP 鉴权
 
 ### 接入 Node(推荐 setup)
 
-Linux/systemd 节点推荐用交互式向导:
+Linux/systemd 与 macOS/launchd 节点推荐用交互式向导:
 
 ```bash
 sudo sit node setup
 ```
 
-它会创建 `sit` system user、安装当前二进制到 `/usr/local/bin/sit`、写入 `/etc/sit/node.yaml`、使用一次性 token enroll、安装并启动 `sit-node.service`。
+Linux 上它会创建 `sit` system user、安装当前二进制到 `/usr/local/bin/sit`、写入 `/etc/sit/node.yaml`、使用一次性 token enroll、安装并启动 `sit-node.service`。macOS 上它会创建 `_sit` 专用用户、写入 `/usr/local/etc/sit/node.yaml`、安装并启动 `/Library/LaunchDaemons/com.meating.sit.plist`。
 
 也可以把关键参数直接传入:
 
@@ -122,7 +122,7 @@ sit node --config /etc/sit/node.yaml
 ### 开机自启
 
 - Linux(systemd):[`deploy/systemd/sit-node.service`](deploy/systemd/sit-node.service) → `systemctl enable --now sit-node`
-- macOS(launchd):[`deploy/launchd/com.sit.node.plist`](deploy/launchd/com.sit.node.plist) → `launchctl load ...`
+- macOS(launchd):[`deploy/launchd/com.meating.sit.plist`](deploy/launchd/com.meating.sit.plist) → `launchctl bootstrap system /Library/LaunchDaemons/com.meating.sit.plist`
 
 > 两层兜底:进程级自启(systemd/launchd Restart)管"进程死了拉起来",应用级退避重连管"连接断了重连上"。
 

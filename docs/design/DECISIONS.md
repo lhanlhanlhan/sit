@@ -2,7 +2,7 @@
 
 > 本文件专门记录**架构决策(ADR)**与**特殊规约**,防止遗忘。
 > 每条决策记录:背景、结论、理由、影响。后续若推翻某决策,新增一条并标注"取代 ADR-NNN",不要删除历史。
-> 最后更新:2026-06-24
+> 最后更新:2026-06-29
 
 ---
 
@@ -126,3 +126,17 @@
   3. **交叉编译脚本** `scripts/build-release.sh`:`CGO_ENABLED=0` + `GOTOOLCHAIN=go1.23.0`,产出 linux/darwin × amd64/arm64 静态二进制。
   4. **端到端验收测试** `internal/managerd/e2e_test.go`:登录→签发 enroll token→exchange 接入→Agent 经 WSS 连接→下发 shell 任务→轮询结果 succeeded,全链路黑盒通过。
 - **影响**:目录新增 `internal/managerd`、`deploy/`、`scripts/`;`cmd/sit/manager.go` 依赖 `managerd`。
+
+## ADR-012 macOS Node setup 采用 LaunchDaemon 与专用用户
+
+- **背景**:`sit node setup` 已支持 Linux/systemd 自动接入,但 macOS 无 systemd;若让 Node 常驻 root,未来远程执行能力会默认扩大为系统级权限,不符合最小权限原则。
+- **结论**:
+  1. macOS `sit node setup` 使用系统级 LaunchDaemon,默认 plist 路径 `/Library/LaunchDaemons/com.meating.sit.plist`,label `com.meating.sit`。
+  2. setup 创建 `_sit` 专用用户与 `_sit` group,常驻 Node 通过 plist 的 `UserName=_sit`、`GroupName=_sit` 降权运行。
+  3. macOS 默认路径为:`/usr/local/bin/sit`、`/usr/local/etc/sit/node.yaml`、`/usr/local/var/lib/sit`、`/usr/local/var/log/sit`。
+  4. enroll 必须以 `_sit` 用户执行,避免长期凭证 identity 由 root 创建。
+- **理由**:
+  1. LaunchDaemon 是 macOS 上 systemd service 的系统级平替,支持开机启动与崩溃自拉起。
+  2. `_sit` 符合 macOS daemon/service account 命名约定,降低与真人账号冲突概率。
+  3. Node 默认低权限常驻,后续确需特权操作时通过 sudoers 白名单或专用 helper 单独授权。
+- **影响**:macOS setup 需要 root 执行并依赖 `launchctl`/`dscl`;plist 必须 `root:wheel 0644`;状态与日志目录归 `_sit:_sit`。

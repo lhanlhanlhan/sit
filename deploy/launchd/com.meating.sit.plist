@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
   SIT Node — resident agent (macOS / launchd).
-  System-level daemon: copy to /Library/LaunchDaemons/com.sit.node.plist then
-    sudo launchctl load /Library/LaunchDaemons/com.sit.node.plist
-  (For a per-user agent instead, place in ~/Library/LaunchAgents/.)
+  System-level daemon: copy to /Library/LaunchDaemons/com.meating.sit.plist then
+    sudo launchctl bootstrap system /Library/LaunchDaemons/com.meating.sit.plist
 
   RunAtLoad + KeepAlive give boot-start + crash-restart; the agent's own
   backoff loop handles connection drops.
@@ -12,7 +11,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.sit.node</string>
+    <string>com.meating.sit</string>
     <key>ProgramArguments</key>
     <array>
         <string>/usr/local/bin/sit</string>
@@ -20,6 +19,10 @@
         <string>--config</string>
         <string>/usr/local/etc/sit/node.yaml</string>
     </array>
+    <key>UserName</key>
+    <string>_sit</string>
+    <key>GroupName</key>
+    <string>_sit</string>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
@@ -27,8 +30,8 @@
     <key>ThrottleInterval</key>
     <integer>5</integer>
     <key>StandardOutPath</key>
-    <string>/usr/local/var/log/sit-node.log</string>
+    <string>/usr/local/var/log/sit/node.log</string>
     <key>StandardErrorPath</key>
-    <string>/usr/local/var/log/sit-node.err.log</string>
+    <string>/usr/local/var/log/sit/node.err.log</string>
 </dict>
 </plist>
